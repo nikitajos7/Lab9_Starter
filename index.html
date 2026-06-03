@@ -6,7 +6,13 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lab 9</title>
-
+  <script src="https://cdn.trackjs.com/agent/v3/latest/t.js"></script>
+  <script>
+    window.TrackJS && TrackJS.install({
+      token: "cea35039882740a9af6013689dae807f"
+      // for more configuration options, see https://docs.trackjs.com
+    });
+  </script>
   <style>
     button {
       margin: 3px;
@@ -69,39 +75,240 @@
     </form>
 
     <section id="error-btns">
-      <button>Console Log</button>
-      <button>Console Error</button>
-      <button>Console Count</button>
-      <button>Console Warn</button>
-      <button>Console Assert</button>
-      <button>Console Clear</button>
-      <button>Console Dir</button>
-      <button>Console dirxml</button>
-      <button>Console Group Start</button>
-      <button>Console Group End</button>
-      <button>Console Table</button>
-      <button>Start Timer</button>
-      <button>End Timer</button>
-      <button>Console Trace</button>
-      <button>Trigger a Global Error</button>
+      <button id="console-log-btn" type="button">Console Log</button>
+      <button id="console-error-btn" type="button">Console Error</button>
+      <button id="console-table-btn" type="button">Console Table</button>
+      <button id="console-dir-btn" type="button">Console Dir</button>
+      <button id="console-dirxml-btn" type="button">Console DirXML</button>
+      <button id="console-group-btn" type="button">Console Group</button>
+      <button id="console-time-btn" type="button">Console Time</button>
+      <button id="console-trace-btn" type="button">Console Trace</button>
+      <button id="try-catch-btn" type="button">Try/Catch/Finally</button>
+      <button id="throw-btn" type="button">Throw Error</button>
+      <button id="custom-error-btn" type="button">Custom Error</button>
+      <button id="global-error-btn" type="button">Trigger a Global Error</button>
     </section>
   </main>
 
   <script>
-    let form = document.querySelector('form');
+    const form = document.querySelector('form');
+    const output = document.querySelector('output');
+
+    window.onerror = function (message, source, lineno, colno, error) {
+      console.group('Global Error Handler');
+      console.log('A global error was caught.');
+      console.error('Message:', message);
+      console.error('Source:', source);
+      console.error('Line:', lineno);
+      console.error('Column:', colno);
+      console.error('Error object:', error);
+      console.groupEnd();
+
+      if (window.TrackJS && error) {
+        TrackJS.track(error);
+      }
+
+      return true;
+    };
+
+    class CalculatorInputError extends Error {
+      constructor(message) {
+        super(message);
+        this.name = 'CalculatorInputError';
+      }
+    }
+
     form.addEventListener('submit', e => {
       e.preventDefault();
-      let output = document.querySelector('output');
-      let firstNum = document.querySelector('#first-num').value;
-      let secondNum = document.querySelector('#second-num').value;
-      let operator = document.querySelector('#operator').value;
-      output.innerHTML = eval(`${firstNum} ${operator} ${secondNum}`);
+
+      try {
+        const firstNum = Number(document.querySelector('#first-num').value);
+        const secondNum = Number(document.querySelector('#second-num').value);
+        const operator = document.querySelector('#operator').value;
+
+        if (Number.isNaN(firstNum) || Number.isNaN(secondNum)) {
+          throw new CalculatorInputError('Both calculator inputs must be valid numbers.');
+        }
+
+        if (operator === '/' && secondNum === 0) {
+          throw new CalculatorInputError('Cannot divide by zero.');
+        }
+
+        let result;
+        switch (operator) {
+          case '+':
+            result = firstNum + secondNum;
+            break;
+          case '-':
+            result = firstNum - secondNum;
+            break;
+          case '*':
+            result = firstNum * secondNum;
+            break;
+          case '/':
+            result = firstNum / secondNum;
+            break;
+          default:
+            throw new CalculatorInputError(`Unsupported operator: ${operator}`);
+        }
+
+        output.textContent = result;
+      } catch (error) {
+        output.textContent = error.message;
+        console.error('Calculator error:', error);
+        if (window.TrackJS) {
+          TrackJS.track(error);
+        }
+      } finally {
+        console.log('Calculator submit handler finished running.');
+      }
     });
 
-    let errorBtns = Array.from(document.querySelectorAll('#error-btns > button'));
+    document.querySelector('#console-log-btn').addEventListener('click', () => {
+      console.log('This is a console.log demo.');
+    });
 
-    // Start your code here
-    // You may move this JS to another file if you wish
+    document.querySelector('#console-error-btn').addEventListener('click', () => {
+      console.error('This is a console.error demo.');
+    });
+
+    document.querySelector('#console-table-btn').addEventListener('click', () => {
+      const calculatorExamples = [
+        { firstNum: 10, operator: '+', secondNum: 5, result: 15 },
+        { firstNum: 10, operator: '-', secondNum: 5, result: 5 },
+        { firstNum: 10, operator: '*', secondNum: 5, result: 50 },
+        { firstNum: 10, operator: '/', secondNum: 5, result: 2 }
+      ];
+
+      console.table(calculatorExamples);
+    });
+
+    document.querySelector('#console-dir-btn').addEventListener('click', () => {
+      console.dir(document.querySelector('#operator'));
+    });
+
+    document.querySelector('#console-dirxml-btn').addEventListener('click', () => {
+      console.dirxml(document.querySelector('form'));
+    });
+
+    document.querySelector('#console-group-btn').addEventListener('click', () => {
+      console.group('Calculator Debug Info');
+      console.log('First input:', document.querySelector('#first-num').value);
+      console.log('Operator:', document.querySelector('#operator').value);
+      console.log('Second input:', document.querySelector('#second-num').value);
+      console.group('Output Element');
+      console.dir(output);
+      console.groupEnd();
+      console.groupEnd();
+    });
+
+    document.querySelector('#console-time-btn').addEventListener('click', () => {
+      console.time('Calculator loop timer');
+
+      let total = 0;
+      for (let i = 0; i < 1000000; i++) {
+        total += i;
+      }
+
+      console.timeEnd('Calculator loop timer');
+      console.log('Loop total:', total);
+    });
+
+    document.querySelector('#console-trace-btn').addEventListener('click', () => {
+      function startTraceDemo() {
+        runTraceDemo();
+      }
+
+      function runTraceDemo() {
+        finishTraceDemo();
+      }
+
+      function finishTraceDemo() {
+        console.trace('Console trace demo');
+      }
+
+      startTraceDemo();
+    });
+
+    document.querySelector('#try-catch-btn').addEventListener('click', () => {
+      console.group('Try/Catch/Finally Demo');
+
+      try {
+        const requiredElement = document.querySelector('#profile-card');
+
+        if (!requiredElement) {
+          throw new Error('The expected #profile-card element does not exist on this page.');
+        }
+
+        requiredElement.textContent = 'Profile card updated.';
+      } catch (error) {
+        console.error('Caught error:', error.message);
+        if (window.TrackJS) {
+          TrackJS.track(error);
+        }
+      } finally {
+        console.log('Finally block ran after the try/catch demo.');
+      }
+
+      console.groupEnd();
+    });
+
+    document.querySelector('#throw-btn').addEventListener('click', () => {
+      console.group('Throw Demo');
+
+      try {
+        const firstNum = Number(document.querySelector('#first-num').value);
+
+        if (Number.isNaN(firstNum)) {
+          throw new Error('The first calculator input must be a number before this demo can continue.');
+        }
+
+        console.log('Valid first number:', firstNum);
+      } catch (error) {
+        console.error('Thrown error caught:', error.message);
+        if (window.TrackJS) {
+          TrackJS.track(error);
+        }
+      }
+
+      console.groupEnd();
+    });
+
+    document.querySelector('#custom-error-btn').addEventListener('click', () => {
+      console.group('Custom Error Demo');
+
+      try {
+        const firstNum = Number(document.querySelector('#first-num').value);
+        const secondNum = Number(document.querySelector('#second-num').value);
+
+        if (Number.isNaN(firstNum) || Number.isNaN(secondNum)) {
+          throw new CalculatorInputError('Custom error: calculator inputs must both be numbers.');
+        }
+
+        if (firstNum > 1000 || secondNum > 1000) {
+          throw new CalculatorInputError('Custom error: calculator inputs must be 1000 or less.');
+        }
+
+        console.log('Custom error validation passed.');
+      } catch (error) {
+        if (error instanceof CalculatorInputError) {
+          console.error(error.name + ':', error.message);
+        } else {
+          console.error('Unexpected error:', error);
+        }
+
+        if (window.TrackJS) {
+          TrackJS.track(error);
+        }
+      }
+
+      console.groupEnd();
+    });
+
+    document.querySelector('#global-error-btn').addEventListener('click', () => {
+      console.log('Triggering a global error.');
+      missingGlobalFunctionForLab9();
+    });
   </script>
 </body>
 
